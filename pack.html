@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>หน้าแพ็คสินค้า | ร้านน้ำผึ้ง</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:"Noto Sans Thai",sans-serif;background:#f6f1e2;color:#2B1A08}
+header{background:#14301F;color:#fff;padding:14px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+header h1{margin:0;font-size:1.2rem;flex:1}
+main{max-width:1000px;margin:0 auto;padding:20px}
+button,input,select{font:inherit}
+button{background:#E8A317;border:0;border-radius:10px;padding:9px 16px;font-weight:700;cursor:pointer;color:#2B1A08}
+button.alt{background:#fff;border:1.5px solid #2B1A08}
+button:disabled{opacity:.5}
+input[type=password],input[type=text]{padding:9px;border-radius:8px;border:1.5px solid #cdbb85}
+.panel{background:#fff;border-radius:14px;padding:18px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+h2{margin:0 0 10px;font-size:1.1rem}
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px;border-bottom:1px solid #eee;text-align:left;vertical-align:top}
+th{background:#fff4cf}
+.num{text-align:right}
+.order{border:1.5px solid #eadba5;border-radius:12px;padding:14px;margin-bottom:12px;display:grid;grid-template-columns:auto 1fr;gap:12px}
+.order.packed{opacity:.55;background:#eef7ee}
+.oid{font-weight:800;font-size:1.05rem}
+.badge{display:inline-block;padding:2px 10px;border-radius:99px;background:#fff0c2;font-size:.8rem;font-weight:600}
+.badge.ok{background:#cdeccd}
+.items li{margin:2px 0}
+.actions{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.msg{color:#c0392b;font-weight:600}
+#labels{display:none}
+
+/* ===== พิมพ์ป้ายจ่าหน้า 100x150mm ===== */
+.label{width:100mm;height:150mm;border:2px solid #000;padding:6mm;page-break-after:always;font-size:12pt;display:flex;flex-direction:column;gap:3mm;background:#fff}
+.label .from{font-size:10pt;border-bottom:1.5px dashed #000;padding-bottom:3mm}
+.label .to-h{font-weight:800;font-size:11pt}
+.label .to-name{font-size:17pt;font-weight:800}
+.label .to-addr{font-size:13pt;line-height:1.4}
+.label .zip{font-size:24pt;font-weight:800;letter-spacing:4px}
+.label .foot{margin-top:auto;border-top:1.5px solid #000;padding-top:3mm;font-size:10pt}
+.label .big{font-size:15pt;font-weight:800}
+@media print{
+  @page{size:100mm 150mm;margin:0}
+  body{background:#fff}
+  header,main{display:none!important}
+  #labels{display:block!important}
+  .label{border:none;margin:0}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>📦 หน้าแพ็คสินค้า &amp; พิมพ์ป้ายจ่าหน้า</h1>
+  <input type="password" id="key" placeholder="รหัสผู้ดูแล">
+  <button id="load">โหลดออเดอร์</button>
+  <a href="index.html" style="color:#E8A317">← หน้าร้าน</a>
+</header>
+
+<main>
+  <p class="msg" id="msg"></p>
+
+  <section class="panel" id="pickPanel" hidden>
+    <h2>① รายการหยิบสินค้า (รวมออเดอร์ที่เลือก)</h2>
+    <table id="pickTable"></table>
+    <p style="margin:10px 0 0">ออเดอร์ที่เลือก: <b id="selCount">0</b> · น้ำหนักรวมโดยประมาณ <b id="selWeight">0</b> กก.</p>
+  </section>
+
+  <section class="panel" id="orderPanel" hidden>
+    <h2>② ออเดอร์ที่ต้องแพ็ค</h2>
+    <div class="actions" style="margin:0 0 12px">
+      <label><input type="checkbox" id="all" checked> เลือกทั้งหมดที่ "รอแพ็ค"</label>
+      <label><input type="checkbox" id="showPacked"> แสดงที่แพ็คแล้ว</label>
+      <button id="printBtn">🖨️ พิมพ์ป้ายจ่าหน้า (ที่เลือก)</button>
+      <button class="alt" id="printPick">🖨️ พิมพ์ใบหยิบสินค้า</button>
+    </div>
+    <div id="orders"></div>
+  </section>
+</main>
+
+<div id="labels"></div>
+
+<script src="config.js"></script>
+<script>
+const S = window.SHOP;
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let orders = [];
+const selected = new Set();
+
+$("key").value = sessionStorage.getItem("adminKey") || "";
+$("load").onclick = load;
+if ($("key").value) load();
+
+async function api(params) {
+  const u = new URL(S.API_URL);
+  Object.entries(params).forEach(([k, v]) => u.searchParams.set(k, v));
+  const r = await fetch(u);
+  return r.json();
+}
+
+async function load() {
+  const key = $("key").value.trim();
+  $("msg").textContent = "กำลังโหลด...";
+  try {
+    const j = await api({ key, action: "list" });
+    if (!j.ok) throw new Error(j.error === "unauthorized" ? "รหัสไม่ถูกต้อง" : j.error);
+    sessionStorage.setItem("adminKey", key);
+    orders = j.orders.reverse();
+    selected.clear();
+    orders.filter(o => o.Status === "รอแพ็ค").forEach(o => selected.add(o.OrderID));
+    $("msg").textContent = "";
+    $("pickPanel").hidden = $("orderPanel").hidden = false;
+    render();
+  } catch (e) { $("msg").textContent = "โหลดไม่สำเร็จ: " + e.message; }
+}
+
+function render() {
+  const showPacked = $("showPacked").checked;
+  $("orders").innerHTML = orders.filter(o => showPacked || o.Status === "รอแพ็ค").map(o => {
+    const packed = o.Status !== "รอแพ็ค";
+    return `<div class="order ${packed ? "packed" : ""}">
+      <input type="checkbox" data-id="${esc(o.OrderID)}" ${selected.has(o.OrderID) ? "checked" : ""} ${packed ? "disabled" : ""}>
+      <div>
+        <div><span class="oid">${esc(o.OrderID)}</span> <span class="badge ${packed ? "ok" : ""}">${esc(o.Status)}</span>
+          <small>${new Date(o.Timestamp).toLocaleString("th-TH")}</small></div>
+        <ul class="items">${o.Items.map(i => `<li>☐ <b>${i.qty} ×</b> ${esc(i.name)} <small>(${esc(i.sku)})</small></li>`).join("")}</ul>
+        <div>${esc(o.Name)} · ${esc(o.Phone)}<br>${esc(o.Address)} ต.${esc(o.Subdistrict)} อ.${esc(o.District)} จ.${esc(o.Province)} ${esc(o.Postcode)}</div>
+        ${o.Note ? `<div><small>หมายเหตุ: ${esc(o.Note)}</small></div>` : ""}
+        ${packed ? "" : `<div class="actions">
+          <input type="text" placeholder="เลขพัสดุ (ถ้ามี)" id="trk_${esc(o.OrderID)}">
+          <button data-pack="${esc(o.OrderID)}">✔ แพ็คเสร็จแล้ว</button></div>`}
+      </div></div>`;
+  }).join("") || "<p>ไม่มีออเดอร์</p>";
+  renderPick();
+}
+
+function renderPick() {
+  const sel = orders.filter(o => selected.has(o.OrderID));
+  const sum = {};
+  sel.forEach(o => o.Items.forEach(i => {
+    sum[i.sku] = sum[i.sku] || { name: i.name, qty: 0 };
+    sum[i.sku].qty += i.qty;
+  }));
+  const rows = Object.entries(sum).map(([sku, v]) =>
+    `<tr><td>${esc(sku)}</td><td>${esc(v.name)}</td><td class="num"><b>${v.qty}</b> ขวด</td></tr>`).join("");
+  $("pickTable").innerHTML = `<tr><th>SKU</th><th>สินค้า</th><th class="num">จำนวนที่ต้องหยิบ</th></tr>` +
+    (rows || `<tr><td colspan="3">ยังไม่ได้เลือกออเดอร์</td></tr>`);
+  $("selCount").textContent = sel.length;
+  $("selWeight").textContent = (sel.reduce((s, o) => s + Number(o["Weight(g)"] || 0), 0) / 1000).toFixed(2);
+}
+
+document.addEventListener("change", e => {
+  if (e.target.dataset.id) {
+    e.target.checked ? selected.add(e.target.dataset.id) : selected.delete(e.target.dataset.id);
+    renderPick();
+  }
+  if (e.target.id === "all") {
+    selected.clear();
+    if (e.target.checked) orders.filter(o => o.Status === "รอแพ็ค").forEach(o => selected.add(o.OrderID));
+    render();
+  }
+  if (e.target.id === "showPacked") render();
+});
+
+document.addEventListener("click", async e => {
+  const id = e.target.dataset.pack;
+  if (!id) return;
+  e.target.disabled = true;
+  const tracking = ($("trk_" + id) || {}).value || "";
+  try {
+    const j = await api({ key: $("key").value.trim(), action: "update", id, status: "แพ็คแล้ว", tracking });
+    if (!j.ok) throw new Error(j.error);
+    const o = orders.find(x => x.OrderID === id);
+    o.Status = "แพ็คแล้ว"; o.TrackingNo = tracking; selected.delete(id);
+    render();
+  } catch (err) { $("msg").textContent = "อัปเดตไม่สำเร็จ: " + err.message; e.target.disabled = false; }
+});
+
+// พิมพ์ป้ายจ่าหน้า
+$("printBtn").onclick = () => {
+  const sel = orders.filter(o => selected.has(o.OrderID));
+  if (!sel.length) return alert("กรุณาเลือกออเดอร์ก่อน");
+  $("labels").innerHTML = sel.map(o => `
+    <div class="label">
+      <div class="from"><b>ผู้ส่ง:</b> ${esc(S.sender.name)} โทร ${esc(S.sender.phone)}<br>${esc(S.sender.address)}</div>
+      <div class="to-h">ผู้รับ / TO:</div>
+      <div class="to-name">${esc(o.Name)}</div>
+      <div class="big">โทร ${esc(o.Phone)}</div>
+      <div class="to-addr">${esc(o.Address)}<br>ต.${esc(o.Subdistrict)} อ.${esc(o.District)}<br>จ.${esc(o.Province)}</div>
+      <div class="zip">${esc(o.Postcode)}</div>
+      <div class="foot">
+        <b>${esc(o.OrderID)}</b> · น้ำหนัก ~${(Number(o["Weight(g)"] || 0) / 1000).toFixed(2)} กก.<br>
+        ${o.Items.map(i => `${i.qty}× ${esc(i.sku)}`).join(" , ")}
+        ${o.Note ? `<br>หมายเหตุ: ${esc(o.Note)}` : ""}
+        <br><b>⚠ ของเหลว/แก้ว ระวังแตก</b>
+      </div>
+    </div>`).join("");
+  window.print();
+};
+
+// พิมพ์ใบหยิบสินค้า
+$("printPick").onclick = () => {
+  const sel = orders.filter(o => selected.has(o.OrderID));
+  if (!sel.length) return alert("กรุณาเลือกออเดอร์ก่อน");
+  const w = window.open("", "_blank");
+  w.document.write(`<meta charset="utf-8"><title>ใบหยิบสินค้า</title>
+  <body style="font-family:sans-serif;padding:20px">${document.getElementById("pickPanel").innerHTML}
+  <h3>รายละเอียดแต่ละออเดอร์</h3>${sel.map(o => `<p>☐ <b>${esc(o.OrderID)}</b> – ${esc(o.Name)}: ${o.Items.map(i => i.qty + "× " + esc(i.sku)).join(", ")}</p>`).join("")}`);
+  w.document.close(); w.print();
+};
+</script>
+</body>
+</html>

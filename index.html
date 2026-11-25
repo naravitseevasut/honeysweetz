@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>น้ำผึ้งบ้านสวน | น้ำผึ้งแท้ 100% ป่าดอกไม้ป่า & ดอกลำไย</title>
+<meta name="description" content="น้ำผึ้งแท้ 100% 2 รสชาติ น้ำผึ้งป่าดอกไม้ป่า และน้ำผึ้งดอกลำไย ขวด 500 กรัม สั่งง่าย ส่งทั่วไทย">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="nav">
+  <div class="wrap nav-in">
+    <a href="#top" class="brand">🍯 <span id="brandName"></span></a>
+    <nav><a href="#products">สินค้า</a><a href="#why">ทำไมต้องเรา</a><a href="#order" class="btn sm">สั่งซื้อ</a></nav>
+  </div>
+</header>
+
+<section class="hero" id="top">
+  <div class="wrap hero-in">
+    <div>
+      <p class="eyebrow">น้ำผึ้งแท้ 100% ไม่ผสมน้ำเชื่อม</p>
+      <h1>หวานจากธรรมชาติ<br>ส่งตรงถึงบ้านคุณ</h1>
+      <p class="lead">เลือกได้ 2 รสชาติ ป่าดอกไม้ป่า และดอกลำไย ขวดแก้วขนาด 500 กรัม แพ็คแน่นหนา ส่งทั่วประเทศ</p>
+      <a class="btn" href="#order">สั่งซื้อเลย</a>
+      <a class="btn ghost" href="#products">ดูสินค้า</a>
+    </div>
+    <div class="hero-img">
+      <img src="images/honey-wild.svg" alt="น้ำผึ้งป่าดอกไม้ป่า" class="a">
+      <img src="images/honey-longan.svg" alt="น้ำผึ้งดอกลำไย" class="b">
+    </div>
+  </div>
+</section>
+
+<section class="why" id="why">
+  <div class="wrap grid3">
+    <div class="card"><div class="ic">🐝</div><h3>แท้ 100%</h3><p>เก็บจากฟาร์มผึ้งโดยตรง ไม่เติมน้ำตาลหรือสารแต่งสี</p></div>
+    <div class="card"><div class="ic">📦</div><h3>แพ็คแน่นหนา</h3><p>ห่อกันกระแทก ขวดไม่แตกระหว่างขนส่ง</p></div>
+    <div class="card"><div class="ic">🚚</div><h3>ส่งทั่วไทย</h3><p>ส่งฟรีเมื่อสั่งครบ <span class="freeAmt"></span> บาท</p></div>
+  </div>
+</section>
+
+<section id="products">
+  <div class="wrap">
+    <h2>สินค้าของเรา</h2>
+    <div class="grid2" id="productGrid"></div>
+  </div>
+</section>
+
+<section class="order" id="order">
+  <div class="wrap narrow">
+    <h2>สั่งซื้อสินค้า</h2>
+    <form id="orderForm" novalidate>
+      <fieldset>
+        <legend>1) เลือกจำนวน</legend>
+        <div id="qtyList"></div>
+        <div class="sum">
+          <div><span>ค่าสินค้า</span><b id="subTotal">0</b></div>
+          <div><span>ค่าจัดส่ง</span><b id="shipFee">0</b></div>
+          <div class="grand"><span>รวมทั้งหมด</span><b id="grandTotal">0</b> บาท</div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>2) ที่อยู่จัดส่ง</legend>
+        <label>ชื่อ-นามสกุล<input name="name" required autocomplete="name"></label>
+        <label>เบอร์โทรศัพท์<input name="phone" required inputmode="tel" pattern="0[0-9]{8,9}" placeholder="0812345678" autocomplete="tel"></label>
+        <label>ที่อยู่ (บ้านเลขที่ หมู่ ซอย ถนน)<textarea name="address" rows="2" required autocomplete="street-address"></textarea></label>
+        <div class="row">
+          <label>ตำบล/แขวง<input name="subdistrict" required></label>
+          <label>อำเภอ/เขต<input name="district" required></label>
+        </div>
+        <div class="row">
+          <label>จังหวัด<input name="province" required></label>
+          <label>รหัสไปรษณีย์<input name="postcode" required inputmode="numeric" pattern="[0-9]{5}" maxlength="5"></label>
+        </div>
+        <label>หมายเหตุ (ถ้ามี)<input name="note"></label>
+      </fieldset>
+
+      <p class="pay">💳 ชำระเงินแบบโอนเงิน: หลังสั่งซื้อ ระบบจะแสดงเลขออเดอร์ ให้โอนและแจ้งสลิปทาง LINE/โทรศัพท์ของร้าน</p>
+      <button class="btn big" type="submit" id="submitBtn">ยืนยันการสั่งซื้อ</button>
+      <p class="msg" id="msg" role="status"></p>
+    </form>
+
+    <div class="done" id="done" hidden>
+      <div class="ic">✅</div>
+      <h3>สั่งซื้อสำเร็จ</h3>
+      <p>เลขออเดอร์ของคุณคือ</p>
+      <div class="oid" id="oid"></div>
+      <p>ขอบคุณที่อุดหนุนครับ/ค่ะ ทางร้านจะแพ็คและจัดส่งหลังตรวจสอบการโอนเงิน</p>
+      <button class="btn ghost dark" onclick="location.reload()">สั่งซื้อเพิ่ม</button>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p id="footName"></p>
+    <p><a href="pack.html">สำหรับร้านค้า: หน้าแพ็คสินค้า</a></p>
+  </div>
+</footer>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
